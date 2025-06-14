@@ -264,8 +264,8 @@ def sample_trajectory(
         raw_rewards.append(raw_reward)
         values.append(value)
         dones.append(torch.tensor(done, dtype=torch.bool, device=device))
-        sinr_violations.append(torch.tensor(info['sinr_violations'], dtype=torch.float32, device=device))
-        qos_violations.append(torch.tensor(info['qos_violations'], dtype=torch.float32, device=device))
+        sinr_violations.append(torch.tensor(info.get('sinr_violations', 0.0), dtype=torch.float32, device=device))
+        qos_violations.append(torch.tensor(info.get('qos_violations', 0.0), dtype=torch.float32, device=device))
         
         # Update for next step
         norm_obs = next_norm_obs
@@ -750,6 +750,10 @@ def train_maml(
                 meta_optimizer.step()
                 consecutive_failures = 0
                 successful_iterations += 1
+                
+                # Update learning rate after optimizer step
+                if iteration > 0 and iteration % 20 == 0:
+                    scheduler.step()
             else:
                 print(f"Warning: Extreme gradient norm {total_grad_norm} at iteration {iteration}")
                 consecutive_failures += 1
@@ -799,10 +803,6 @@ def train_maml(
                   
         if use_wandb:
             wandb.log(log_data, step=iteration)
-            
-        # Update learning rate
-        if iteration > 0 and iteration % 20 == 0:
-            scheduler.step()
             
     if use_wandb:
         wandb.finish()
@@ -954,7 +954,7 @@ if __name__ == "__main__":
         eval_interval=10,
         num_eval_tasks=5,
         rollout_length=50,
-        use_wandb=True  
+        use_wandb=False  # Set to True to use wandb logging
     )
     
     print("\nTraining completed!")
