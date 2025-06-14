@@ -7,6 +7,9 @@ import os
 import pickle
 from typing import Dict, Any
 import wandb
+import warnings
+
+warnings.filterwarnings("ignore", category=UserWarning, module="gymnasium.envs.registration")
 
 # Import PyTorch versions
 from mLN.environment import DynamicSpectrumEnv
@@ -45,6 +48,10 @@ def main(cfg: DictConfig) -> None:
     
     # Create environment using Hydra's instantiate
     env_config = OmegaConf.to_container(cfg.env, resolve=True)
+    
+    # Remove Hydra-specific keys
+    if '_target_' in env_config:
+        env_config.pop('_target_')
     
     # Add device to env config
     env_config['device'] = device.type
