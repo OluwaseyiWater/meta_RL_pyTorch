@@ -150,7 +150,7 @@ class DynamicSpectrumEnv(gym.Env):
         scenario = torch.randint(0, 3, (1,)).item()
         
         # Distance-dependent path loss (in dB)
-        distances = torch.rand(self.num_users, self.num_bs, device=self.device) * 1.9 + 0.1  
+        distances = torch.rand(self.num_users, self.num_bs, device=self.device) * 1.9 + 0.1  # 0.1-2.0 km
         
         # Path loss models for different scenarios (Urban, Suburban, Rural)
         if scenario == 0:  # Urban
@@ -161,7 +161,7 @@ class DynamicSpectrumEnv(gym.Env):
             path_loss = 105.3 + 34.2 * torch.log10(distances)
         
         # Shadow fading (log-normal)
-        shadow_fading = torch.randn(self.num_users, self.num_bs, device=self.device) * 8.0  
+        shadow_fading = torch.randn(self.num_users, self.num_bs, device=self.device) * 8.0  # 8 dB std
         
         # Total channel gains
         channel_gains = -(path_loss + shadow_fading)
@@ -395,6 +395,7 @@ class DynamicSpectrumEnv(gym.Env):
         info = {
             "latency_violations": torch.sum(self.state.qos_metrics[:, 0] > self.max_latency).item(),
             "sinr_violations": torch.sum(torch.max(sinr_db, dim=1)[0] < self.min_sinr).item(),
+            "qos_violations": torch.sum(self.state.qos_metrics[:, 0] > self.max_latency).item(),  # Same as latency_violations for compatibility
             "average_sinr": torch.mean(torch.max(sinr_db, dim=1)[0]).item(),
             "average_throughput": torch.mean(self.state.qos_metrics[:, 1]).item(),
             "action_mask": action_mask.cpu().numpy()
