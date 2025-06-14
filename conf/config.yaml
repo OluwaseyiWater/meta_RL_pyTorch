@@ -16,7 +16,7 @@ env:
   power_levels: null  # Will use default linspace
   fading_coherence: 0.9
   max_interference: 25.0  # mW
-  min_sinr: 5.0  # dB
+  min_sinr: -5.0  # dB
   render_mode: null
 
 # MAML configuration
