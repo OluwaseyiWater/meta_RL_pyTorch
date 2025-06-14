@@ -66,10 +66,11 @@ class RecurrentPolicyNetwork(nn.Module):
         nn.init.constant_(self.output_layer.bias, 0)
         
     def forward(self, obs, hidden_state=None):
+        # Handle different input dimensions
         if obs.dim() == 1:
-            obs = obs.unsqueeze(0).unsqueeze(0)  
+            obs = obs.unsqueeze(0).unsqueeze(0)  # Add batch and sequence dims
         elif obs.dim() == 2:
-            obs = obs.unsqueeze(1)  
+            obs = obs.unsqueeze(1)  # Add sequence dim
             
         batch_size = obs.shape[0]
         
@@ -82,6 +83,7 @@ class RecurrentPolicyNetwork(nn.Module):
             c0 = torch.zeros(1, batch_size, self.lstm_hidden_dim, device=obs.device)
             hidden_state = (h0, c0)
         else:
+            # Ensure hidden state has correct dimensions
             h, c = hidden_state
             if h.dim() == 1:
                 h = h.unsqueeze(0).unsqueeze(0)
@@ -315,8 +317,8 @@ def sample_recurrent_trajectory(
         values.append(value)
         dones.append(torch.tensor(done, dtype=torch.bool, device=device))
         log_probs.append(log_prob)
-        sinr_violations.append(torch.tensor(info['sinr_violations'], dtype=torch.float32, device=device))
-        qos_violations.append(torch.tensor(info['qos_violations'], dtype=torch.float32, device=device))
+        sinr_violations.append(torch.tensor(info.get('sinr_violations', 0.0), dtype=torch.float32, device=device))
+        qos_violations.append(torch.tensor(info.get('qos_violations', 0.0), dtype=torch.float32, device=device))
         
         # Update for next step
         norm_obs = next_norm_obs
@@ -1059,7 +1061,7 @@ if __name__ == "__main__":
         eval_interval=10,
         num_eval_tasks=5,
         rollout_length=20,
-        use_wandb=True
+        use_wandb=False  # Set to True to use wandb logging
     )
     
     print("\nTraining completed!")
