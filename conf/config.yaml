@@ -1,0 +1,88 @@
+# Configuration for Dynamic Spectrum Allocation Meta-Learning
+
+# Random seed for reproducibility
+seed: 42
+
+# Environment configuration
+env:
+  _target_: spectrum_env_pytorch.DynamicSpectrumEnv
+  num_bs: 3
+  num_users: 10
+  num_bands: 5
+  max_steps: 100
+  max_latency: 50.0
+  max_power: 23.0  # dBm
+  num_power_levels: 4
+  power_levels: null  # Will use default linspace
+  fading_coherence: 0.9
+  max_interference: 25.0  # mW
+  min_sinr: 5.0  # dB
+  render_mode: null
+
+# MAML configuration
+maml:
+  # Meta-learning parameters
+  num_meta_tasks: 4
+  num_meta_iterations: 1000
+  meta_lr: 0.001
+  
+  # Inner loop parameters
+  inner_lr: 0.01
+  inner_steps: 5
+  
+  # Network architecture
+  hidden_dim: 64
+  num_blocks: 2
+  
+  # Training parameters
+  rollout_len: 50
+  eval_interval: 10
+  num_eval_tasks: 5
+  
+  # Logging
+  use_wandb: true
+  wandb_project: "maml-spectrum-allocation"
+  wandb_name: null  # Will auto-generate
+
+# Recurrent MAML-PPO configuration
+recurrent:
+  # Meta-learning parameters
+  num_meta_tasks: 4
+  num_meta_iterations: 1000
+  meta_lr: 0.001
+  
+  # Inner loop parameters
+  inner_lr: 0.01
+  inner_steps: 5
+  
+  # PPO specific
+  clip_ratio: 0.1
+  
+  # Network architecture
+  hidden_dim: 64
+  lstm_hidden_dim: 32
+  num_blocks: 2
+  
+  # Training parameters
+  rollout_len: 20  # Shorter for recurrent
+  eval_interval: 10
+  num_eval_tasks: 5
+  
+  # Logging
+  use_wandb: true
+  wandb_project: "recurrent-maml-spectrum"
+  wandb_name: null  # Will auto-generate
+
+# Hydra configuration
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  job:
+    config:
+      override_dirname:
+        exclude_keys:
+          - seed
+          - use_wandb
