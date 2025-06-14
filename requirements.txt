@@ -1,3 +1,7 @@
 gymnasium
 hydra-core
 wandb
+torch
+numpy
+omegaconf
+graphviz
