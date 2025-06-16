@@ -27,8 +27,8 @@ maml:
   meta_lr: 0.001
   
   # Inner loop parameters
-  inner_lr: 0.01
-  inner_steps: 5
+  inner_lr: 0.0001
+  inner_steps: 2
   
   # Network architecture
   hidden_dim: 64
@@ -52,8 +52,8 @@ recurrent:
   meta_lr: 0.001
   
   # Inner loop parameters
-  inner_lr: 0.01
-  inner_steps: 5
+  inner_lr: 0.0001
+  inner_steps: 2
   
   # PPO specific
   clip_ratio: 0.1
