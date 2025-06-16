@@ -83,15 +83,10 @@ class RecurrentPolicyNetwork(nn.Module):
             c0 = torch.zeros(1, batch_size, self.lstm_hidden_dim, device=obs.device)
             hidden_state = (h0, c0)
         else:
-            # Ensure hidden state has correct dimensions
             h, c = hidden_state
-            if h.dim() == 1:
-                h = h.unsqueeze(0).unsqueeze(0)
-                c = c.unsqueeze(0).unsqueeze(0)
-            elif h.dim() == 2 and h.shape[0] != 1:
-                h = h.unsqueeze(0)
+            if h.dim() == 2: 
+                h = h.unsqueeze(0) 
                 c = c.unsqueeze(0)
-                
             hidden_state = (h, c)
             
         # LSTM forward
@@ -107,9 +102,7 @@ class RecurrentPolicyNetwork(nn.Module):
         
         # Conservative clipping
         logits = torch.clamp(logits, -3.0, 3.0)
-        
-        # Format hidden state for output
-        new_hidden = LSTMState(new_h.squeeze(0), new_c.squeeze(0))
+        new_hidden = LSTMState(new_h, new_c)
         
         return logits, new_hidden
 
@@ -251,7 +244,7 @@ def sample_recurrent_trajectory(
     
     if not torch.all(torch.isfinite(obs)):
         print("Warning: Invalid initial observation")
-        return create_empty_recurrent_trajectory(device)
+        return create_empty_recurrent_trajectory(policy_net, device)
         
     norm_obs = obs_normalizer.normalize(obs)
     
@@ -282,7 +275,7 @@ def sample_recurrent_trajectory(
             
             # Handle multi-dimensional log probs
             if log_prob.dim() > 0:
-                log_prob = log_prob.sum()
+                log_prob = log_prob.sum(dim=-1).squeeze()
                 
             # Get value
             value = value_net(norm_obs).squeeze()
@@ -327,7 +320,7 @@ def sample_recurrent_trajectory(
             break
             
     if len(observations) == 0:
-        return create_empty_recurrent_trajectory(device)
+        return create_empty_recurrent_trajectory(policy_net, device)
         
     # Get final value
     with torch.no_grad():
@@ -352,16 +345,28 @@ def sample_recurrent_trajectory(
     return trajectory
 
 
-def create_empty_recurrent_trajectory(device: torch.device) -> RecurrentTrajectory:
+def create_empty_recurrent_trajectory(policy_net: RecurrentPolicyNetwork, device: torch.device) -> RecurrentTrajectory:
     """Create empty trajectory for error cases"""
+    # =====================================================================
+    # FIX: The hidden state must be 3D.
+    # Shape: (num_layers, batch_size, hidden_dim)
+    # Here, batch_size is 1.
+    # =====================================================================
+    lstm_hidden_dim = policy_net.lstm_hidden_dim
     empty_hidden = LSTMState(
-        torch.zeros(1, 32, device=device),  # Adjust hidden dim as needed
-        torch.zeros(1, 32, device=device)
+        torch.zeros(1, 1, lstm_hidden_dim, device=device),
+        torch.zeros(1, 1, lstm_hidden_dim, device=device)
     )
     
+    num_bs = policy_net.num_bs
+    num_bands = policy_net.num_bands
+    
+
+    obs_dim = 10*3 + 3*5 + 10*2 + 3*5 + 3*5 + 1
+    
     return RecurrentTrajectory(
-        observations=torch.empty(0, 70, device=device),
-        actions=torch.empty(0, 15, device=device),
+        observations=torch.empty(0, obs_dim, device=device),
+        actions=torch.empty(0, num_bs * num_bands, device=device),
         rewards=torch.empty(0, device=device),
         raw_rewards=torch.empty(0, device=device),
         values=torch.empty(0, device=device),
@@ -414,11 +419,11 @@ def compute_ppo_loss(
         dist = Categorical(logits=logits)
         
         current_log_prob = dist.log_prob(actions[t])
-        if current_log_prob.dim() > 0:
-            current_log_prob = current_log_prob.sum()
+        if current_log_prob.dim() > 1:
+            current_log_prob = current_log_prob.sum(dim=-1).squeeze()
             
         entropy = dist.entropy()
-        if entropy.dim() > 0:
+        if entropy.dim() > 1:
             entropy = entropy.mean()
             
         value = value_net(obs[t]).squeeze()
@@ -961,7 +966,7 @@ def evaluate_recurrent_maml(
             )
             
             if pre_traj.observations.shape[0] > 0:
-                pre_rewards.append(pre_traj.rewards.mean().item())
+                pre_rewards.append(pre_traj.raw_rewards.mean().item()) # Using raw rewards for interpretable eval
                 pre_sinrs.append(pre_traj.sinr_violations.mean().item())
                 pre_qoss.append(pre_traj.qos_violations.mean().item())
                 
@@ -981,7 +986,7 @@ def evaluate_recurrent_maml(
             )
             
             if post_traj.observations.shape[0] > 0:
-                post_rewards.append(post_traj.rewards.mean().item())
+                post_rewards.append(post_traj.raw_rewards.mean().item()) # Using raw rewards for interpretable eval
                 post_sinrs.append(post_traj.sinr_violations.mean().item())
                 post_qoss.append(post_traj.qos_violations.mean().item())
                 
