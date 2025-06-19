@@ -28,14 +28,14 @@ maml:
   
   # Inner loop parameters
   inner_lr: 0.0001
-  inner_steps: 2
+  inner_steps: 5
   
   # Network architecture
   hidden_dim: 64
   num_blocks: 2
   
   # Training parameters
-  rollout_len: 50
+  rollout_len: 100
   eval_interval: 10
   num_eval_tasks: 5
   
@@ -53,7 +53,7 @@ recurrent:
   
   # Inner loop parameters
   inner_lr: 0.0001
-  inner_steps: 2
+  inner_steps: 5
   
   # PPO specific
   clip_ratio: 0.1
@@ -64,7 +64,7 @@ recurrent:
   num_blocks: 2
   
   # Training parameters
-  rollout_len: 20  # Shorter for recurrent
+  rollout_len: 100  # Shorter for recurrent
   eval_interval: 10
   num_eval_tasks: 5
   
