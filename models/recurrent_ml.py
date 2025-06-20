@@ -391,7 +391,7 @@ def compute_ppo_loss(
     trajectory: RecurrentTrajectory,
     clip_ratio: float = 0.15,
     value_coeff: float = 0.3,
-    entropy_coeff: float = 0.01,
+    entropy_coeff: float = 0.05,
     device: torch.device = DEVICE
 ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
     """Compute PPO loss for recurrent policy"""
