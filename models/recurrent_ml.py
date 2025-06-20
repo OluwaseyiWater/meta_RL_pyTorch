@@ -176,7 +176,7 @@ class RewardNormalizer:
         self.var = torch.tensor(100.0)
         self.count = 0
         self.eps = 1e-4
-        self.min_count = 200
+        self.min_count = 20
         
     def update(self, rewards: torch.Tensor):
         """Update running statistics"""
@@ -391,7 +391,7 @@ def compute_ppo_loss(
     trajectory: RecurrentTrajectory,
     clip_ratio: float = 0.15,
     value_coeff: float = 0.3,
-    entropy_coeff: float = 0.05,
+    entropy_coeff: float = 0.03,
     device: torch.device = DEVICE
 ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
     """Compute PPO loss for recurrent policy"""
@@ -476,7 +476,7 @@ def compute_ppo_loss(
     mean_entropy_bonus = torch.clamp(mean_entropy_bonus, -2.0, 2.0)
     
     # Total loss
-    total_loss = mean_policy_loss + value_coeff * mean_value_loss + entropy_coeff * mean_entropy_bonus
+    total_loss = mean_policy_loss + value_coeff * mean_value_loss - entropy_coeff * mean_entropy_bonus
     
     # Safety check
     if not torch.isfinite(total_loss):
@@ -640,10 +640,10 @@ def sample_task(base_env: DynamicSpectrumEnv) -> DynamicSpectrumEnv:
     """Sample a task by varying environment parameters (same as MAML)"""
     
     # Sample variations
-    interference_var = np.random.uniform(0.8, 1.2)
-    fading_var = np.random.uniform(0.9, 1.1)
-    latency_var = np.random.uniform(0.9, 1.1)
-    sinr_var = np.random.uniform(0.95, 1.05)
+    interference_var = np.random.uniform(0.5, 1.5)
+    fading_var = np.random.uniform(0.7, 1.3)
+    latency_var = np.random.uniform(0.7, 1.3)
+    sinr_var = np.random.uniform(0.8, 1.2)
     
     # Apply variations
     new_max_interference = base_env.max_interference * interference_var
@@ -893,7 +893,7 @@ def train_recurrent_maml_ppo(
             # Print progress
             pre_r = eval_metrics.get('eval_avg_pre_reward', 0.0)
             post_r = eval_metrics.get('eval_avg_post_reward', 0.0)
-            improvement_pct = ((post_r - pre_r) / abs(pre_r) * 100) if pre_r != 0 else 0.0
+            improvement_pct = (abs(post_r - pre_r) / abs(pre_r) * 100) if pre_r != 0 else 0.0
             
             print(f"[Iter {iteration:3d}] "
                   f"meta_loss={log_data.get('meta_loss', 0.0):6.3f} | "
