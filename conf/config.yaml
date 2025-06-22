@@ -1,11 +1,8 @@
-# Configuration for Dynamic Spectrum Allocation Meta-Learning
-
-# Random seed for reproducibility
 seed: 42
 
 # Environment configuration
 env:
-  _target_: spectrum_env_pytorch.DynamicSpectrumEnv
+  _target_: mLN.environment.DynamicSpectrumEnv
   num_bs: 3
   num_users: 10
   num_bands: 5
@@ -13,7 +10,7 @@ env:
   max_latency: 50.0
   max_power: 23.0  # dBm
   num_power_levels: 4
-  power_levels: null  # Will use default linspace
+  power_levels: null  
   fading_coherence: 0.9
   max_interference: 25.0  # mW
   min_sinr: -5.0  # dB
@@ -21,59 +18,78 @@ env:
 
 # MAML configuration
 maml:
-  # Meta-learning parameters
   num_meta_tasks: 4
   num_meta_iterations: 1000
   meta_lr: 0.001
-  
-  # Inner loop parameters
   inner_lr: 0.002
   inner_steps: 3
-  
-  # Network architecture
   hidden_dim: 64
   num_blocks: 2
-  
-  # Training parameters
   rollout_len: 100
   eval_interval: 10
   num_eval_tasks: 5
-  
-  # Logging
   use_wandb: true
   wandb_project: "maml-spectrum-allocation"
-  wandb_name: null  # Will auto-generate
+  wandb_name: null
+
+# PPO configuration
+ppo:
+  total_steps: 200000
+  rollout_len: 200
+  ppo_epochs: 4
+  lr_actor: 3e-4
+  lr_critic: 1e-3
+  gamma: 0.99
+  clip_ratio: 0.2
+  value_coeff: 0.5
+  entropy_coeff: 0.01
+  eval_interval: 10000
+  eval_episodes: 5
+  use_wandb: true
+  wandb_project: "ppo-spectrum-meta"
+  wandb_name: null
 
 # Recurrent MAML-PPO configuration
 recurrent:
-  # Meta-learning parameters
   num_meta_tasks: 4
   num_meta_iterations: 1000
   meta_lr: 0.001
-  
-  # Inner loop parameters
   inner_lr: 0.002
   inner_steps: 3
-  
-  # PPO specific
   clip_ratio: 0.1
-  
-  # Network architecture
   hidden_dim: 64
   lstm_hidden_dim: 32
   num_blocks: 2
-  
-  # Training parameters
-  rollout_len: 100  # Shorter for recurrent
+  rollout_len: 100
   eval_interval: 10
   num_eval_tasks: 5
-  
-  # Logging
   use_wandb: true
   wandb_project: "recurrent-maml-spectrum"
-  wandb_name: null  # Will auto-generate
+  wandb_name: null
+
+
+trainer:
+  target: train_ppo.PPOTrainer
+  env: ${env}
+  ppo: ${ppo}
+  seed: ${seed}
+  device: null
 
 # Hydra configuration
+# hydra:
+#   run:
+#     dir: outputs/{now:%H-%M-%S}
+#   sweep:
+#     dir: multirun/{now:%H-%M-%S}
+#     subdir: ${hydra.job.num}
+#   job:
+#     config:
+#       override_dirname:
+#         exclude_keys:
+#           - seed
+#           - use_wandb
+
+
 hydra:
   run:
     dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
